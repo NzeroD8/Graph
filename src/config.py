@@ -138,7 +138,7 @@ def check_repo(repo: str, test_mode: bool) -> Optional[str]:
     if is_http_url(repo):
         return None
     return (
-        f"«{repo}» не похоже на URL: ожидается вид http(s)://путь "
+        f"«{repo}» не похоже на URL: ожидается вид http(s)://хост/путь"
         "(для файла тестового репозитория добавьте --test-mode)"
     )
 
