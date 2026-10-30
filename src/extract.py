@@ -11,7 +11,7 @@ from apt_parser import (
     find_records,
 )
 
-RELEASES = ("noble", "noble-updates", "noble-security")
+RELEASE_SUFFIXES = ("", "-updates", "-security")
 COMPONENTS = ("main", "universe")
 ARCHITECTURE = "amd64"
 INDEX_PATH = "dists/{release}/{component}/binary-{arch}/Packages.gz"
@@ -23,13 +23,15 @@ class FetchError(Exception):
     """Ошибка получения данных о пакете из репозитория."""
 
 
-def build_index_urls(repo: str) -> List[str]:
+def build_index_urls(repo: str, release: str) -> List[str]:
     base = repo.rstrip("/")
     return [
         f"{base}/" + INDEX_PATH.format(
-            release=release, component=component, arch=ARCHITECTURE
+            release=release + suffix,
+            component=component,
+            arch=ARCHITECTURE,
         )
-        for release in RELEASES
+        for suffix in RELEASE_SUFFIXES
         for component in COMPONENTS
     ]
 
@@ -52,6 +54,7 @@ def pick_version(records: List[Record], version: str) -> Optional[Record]:
 def explain_failure(
     package: str,
     version: str,
+    release: str,
     known: List[Record],
     failures: List[str],
     total: int,
@@ -61,17 +64,19 @@ def explain_failure(
     if known:
         versions = ", ".join(sorted({r[VERSION_FIELD] for r in known}))
         return (
-            f"версия {version} пакета «{package}» не найдена; "
-            f"в репозитории есть: {versions}"
+            f"версия {version} пакета «{package}» не найдена "
+            f"в релизе {release}; в нём есть: {versions}"
         )
-    message = f"пакет «{package}» не найден в репозитории"
+    message = f"пакет «{package}» не найден в релизе {release}"
     if failures:
         message += f" (не удалось прочитать индексов: {len(failures)})"
     return message
 
 
-def fetch_dependencies(repo: str, package: str, version: str) -> List[str]:
-    urls = build_index_urls(repo)
+def fetch_dependencies(
+    repo: str, package: str, version: str, release: str
+) -> List[str]:
+    urls = build_index_urls(repo, release)
     known: List[Record] = []
     failures: List[str] = []
     for url in urls:
@@ -85,5 +90,7 @@ def fetch_dependencies(repo: str, package: str, version: str) -> List[str]:
             return direct_dependencies(match)
         known += records
     raise FetchError(
-        explain_failure(package, version, known, failures, len(urls))
+        explain_failure(
+            package, version, release, known, failures, len(urls)
+        )
     )

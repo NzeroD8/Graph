@@ -31,7 +31,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return EXIT_OK
     try:
         names = fetch_dependencies(
-            config.repo, config.package, config.version
+            config.repo, config.package, config.version, config.release
         )
     except FetchError as error:
         print(f"Ошибка: {error}", file=sys.stderr)

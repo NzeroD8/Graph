@@ -45,4 +45,8 @@ echo === 10. Неизвестная опция и флаг со значение
 %PY% src\main.py --depth 3
 %PY% src\main.py --ascii-tree=yes
 
+echo.
+echo === 11. Неверный релиз ===
+%PY% src\main.py --package nginx --repo https://archive.ubuntu.com/ubuntu --package-version 1.0 --release Noble
+
 pause

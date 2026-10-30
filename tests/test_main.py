@@ -40,7 +40,7 @@ class MainTests(unittest.TestCase):
         with mock.patch(FETCH, return_value=["libc6", "zlib1g"]) as fetch:
             code, out, err = run_main(GOOD_ARGS)
         fetch.assert_called_once_with(
-            "https://archive.ubuntu.com/ubuntu", "nginx", "1.24.0")
+            "https://archive.ubuntu.com/ubuntu", "nginx", "1.24.0", "noble")
         self.assertEqual(code, EXIT_OK)
         self.assertEqual(
             out.splitlines(),
@@ -48,6 +48,12 @@ class MainTests(unittest.TestCase):
              "  libc6", "  zlib1g"],
         )
         self.assertEqual(err, "")
+
+    def test_release_is_passed(self):
+        """Значение --release передаётся в получение данных."""
+        with mock.patch(FETCH, return_value=[]) as fetch:
+            run_main(GOOD_ARGS + ["--release", "jammy"])
+        self.assertEqual(fetch.call_args.args[3], "jammy")
 
     def test_no_dependencies(self):
         """Пустой список зависимостей помечается как "нет"."""

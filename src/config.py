@@ -6,12 +6,27 @@ from typing import List, NoReturn, Optional, Sequence
 from urllib.parse import urlparse
 
 DEFAULT_OUTPUT = "graph.svg"
+DEFAULT_RELEASE = "noble"
+RELEASE_NAMES = {
+    "20.04": "focal",
+    "22.04": "jammy",
+    "22.10": "kinetic",
+    "23.04": "lunar",
+    "23.10": "mantic",
+    "24.04": "noble",
+    "24.10": "oracular",
+    "25.04": "plucky",
+    "25.10": "questing",
+    "26.04": "resolute",
+}
 SVG_EXTENSION = ".svg"
 URL_SCHEMES = ("http", "https")
 NOT_SET = "(не задано)"
 
 PACKAGE_PATTERN = re.compile(r"[a-z0-9][a-z0-9+.\-]+")
 TEST_PACKAGE_PATTERN = re.compile(r"[A-Z]+")
+RELEASE_PATTERN = re.compile(r"[a-z]+")
+RELEASE_NUMBER_PATTERN = re.compile(r"\d{2}\.\d{2}")
 VERSION_PATTERN = re.compile(r"(\d+:)?\d[A-Za-z0-9.+~\-]*")
 FILTER_PATTERN = re.compile(r"[A-Za-z0-9+.\-]*")
 BAD_FILE_CHARS_PATTERN = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
@@ -23,6 +38,7 @@ class Config:
     repo: str
     test_mode: bool
     version: str
+    release: str
     output: str
     ascii_tree: bool
     filter_substring: str
@@ -60,6 +76,11 @@ def add_source_options(parser: ConfigParser) -> None:
         dest="version",
         default="",
         help="версия анализируемого пакета",
+    )
+    parser.add_argument(
+        "--release",
+        default=DEFAULT_RELEASE,
+        help="номер или кодовое имя релиза Ubuntu (по умолчанию noble)",
     )
 
 
@@ -155,6 +176,18 @@ def check_version(version: str) -> Optional[str]:
     )
 
 
+def check_release(release: str) -> Optional[str]:
+    if release in RELEASE_NAMES or RELEASE_PATTERN.fullmatch(release):
+        return None
+    if RELEASE_NUMBER_PATTERN.fullmatch(release):
+        known = ", ".join(RELEASE_NAMES)
+        return f"неизвестный номер релиза «{release}», известные: {known}"
+    return (
+        f"релиз «{release}» недопустим: нужен номер (например 24.04) "
+        "или кодовое имя строчными латинскими буквами (например noble)"
+    )
+
+
 def check_output(name: str) -> Optional[str]:
     if not name:
         return "имя файла не задано"
@@ -187,6 +220,7 @@ def collect_errors(config: Config) -> List[str]:
         ("--package", check_package(config.package, config.test_mode)),
         ("--repo", check_repo(config.repo, config.test_mode)),
         ("--package-version", check_version(config.version)),
+        ("--release", check_release(config.release)),
         ("--output", check_output(config.output)),
         ("--filter", check_filter(config.filter_substring)),
     )
@@ -199,6 +233,7 @@ def parse_config(argv: Optional[Sequence[str]] = None) -> Config:
     errors = collect_errors(config)
     if errors:
         raise ConfigError(errors)
+    config.release = RELEASE_NAMES.get(config.release, config.release)
     return config
 
 
