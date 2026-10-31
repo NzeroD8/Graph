@@ -1,9 +1,18 @@
 import re
-from typing import Dict, Iterable, Iterator, List
+from typing import (
+    Collection,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+)
 
 PACKAGE_FIELD = "Package"
 VERSION_FIELD = "Version"
 DEPENDENCY_FIELDS = ("Pre-Depends", "Depends")
+INDEX_FIELDS = frozenset((PACKAGE_FIELD, VERSION_FIELD) + DEPENDENCY_FIELDS)
 CONTINUATION_PREFIXES = (" ", "\t")
 ALTERNATIVE_SEPARATORS = re.compile(r"[,|]")
 NAME_PATTERN = re.compile(r"\s*([a-z0-9][a-z0-9+.\-]*)")
@@ -11,39 +20,56 @@ NAME_PATTERN = re.compile(r"\s*([a-z0-9][a-z0-9+.\-]*)")
 Record = Dict[str, str]
 
 
-def parse_record(lines: Iterable[str]) -> Record:
-    fields: Record = {}
+class Entry(NamedTuple):
+    version: str
+    dependencies: str
+
+
+def parse_record(
+    lines: Iterable[str], fields: Optional[Collection[str]] = None
+) -> Record:
+    record: Record = {}
     key = ""
     for line in lines:
         if line.startswith(CONTINUATION_PREFIXES):
             if key:
-                fields[key] += "\n" + line.strip()
+                record[key] += "\n" + line.strip()
             continue
         name, separator, value = line.partition(":")
-        if separator:
-            key = name
-            fields[key] = value.strip()
-    return fields
+        wanted = fields is None or name in fields
+        key = name if separator and wanted else ""
+        if key:
+            record[key] = value.strip()
+    return record
 
 
-def iter_records(lines: Iterable[str]) -> Iterator[Record]:
+def iter_records(
+    lines: Iterable[str], fields: Optional[Collection[str]] = None
+) -> Iterator[Record]:
     block: List[str] = []
     for line in lines:
         if line.strip():
             block.append(line.rstrip("\n"))
         elif block:
-            yield parse_record(block)
+            yield parse_record(block, fields)
             block = []
     if block:
-        yield parse_record(block)
+        yield parse_record(block, fields)
 
 
-def find_records(lines: Iterable[str], package: str) -> List[Record]:
-    return [
-        record
-        for record in iter_records(lines)
-        if record.get(PACKAGE_FIELD) == package
-    ]
+def dependencies_text(record: Record) -> str:
+    parts = [record[field] for field in DEPENDENCY_FIELDS if field in record]
+    return ", ".join(parts)
+
+
+def collect_entries(lines: Iterable[str]) -> Dict[str, List[Entry]]:
+    entries: Dict[str, List[Entry]] = {}
+    for record in iter_records(lines, INDEX_FIELDS):
+        name = record.get(PACKAGE_FIELD)
+        if name and VERSION_FIELD in record:
+            entry = Entry(record[VERSION_FIELD], dependencies_text(record))
+            entries.setdefault(name, []).append(entry)
+    return entries
 
 
 def extract_name(alternative: str) -> str:
@@ -58,8 +84,3 @@ def parse_dependencies(value: str) -> List[str]:
         if name and name not in names:
             names.append(name)
     return names
-
-
-def direct_dependencies(record: Record) -> List[str]:
-    parts = [record[field] for field in DEPENDENCY_FIELDS if field in record]
-    return parse_dependencies(", ".join(parts))

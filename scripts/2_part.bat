@@ -21,11 +21,7 @@ echo === 4. Репозиторий недоступен ===
 %PY% src\main.py --package nginx --repo https://archive.ubuntu.invalid/ubuntu --package-version 1.24.0-2ubuntu7
 
 echo.
-echo === 5. Режим тестирования ===
-%PY% src\main.py --package A --repo README.md --test-mode --package-version 1.0
-
-echo.
-echo === 6. Другой релиз ===
+echo === 5. Другой релиз ===
 %PY% src\main.py --package nginx --repo https://archive.ubuntu.com/ubuntu --package-version 1.24.0-2ubuntu7 --release jammy
 
 pause

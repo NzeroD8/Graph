@@ -10,7 +10,7 @@ echo === 1. Корректный запуск (обычный режим) ===
 
 echo.
 echo === 2. Корректный запуск (режим тестирования) ===
-%PY% src\main.py --package A --repo README.md --test-mode --package-version 1.0
+%PY% src\main.py --package A --repo test_repos\diamond.txt --test-mode --package-version 1.0
 
 echo.
 echo === 3. Нет обязательных параметров ===
