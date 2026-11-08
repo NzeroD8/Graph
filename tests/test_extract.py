@@ -7,8 +7,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from apt_parser import Entry  # noqa: E402
-from extract import (  # noqa: E402
+from apt_parser import Entry  
+from extract import (  
     ARCHITECTURE,
     COMPONENTS,
     RELEASE_SUFFIXES,

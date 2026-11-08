@@ -111,6 +111,32 @@ def build_graph(
     visit_level([root], graph, source, substring)
     return graph
 
+def load_order(graph: Graph, root: str) -> List[str]:
+    order: List[str] = []
+    seen = {root}
+    stack = [(root, iter(graph.get(root, [])))]
+    while stack:
+        name, children = stack[-1]
+        for child in children:
+            if child not in seen:
+                seen.add(child)
+                stack.append((child, iter(graph.get(child, []))))
+                break
+        else:
+            order.append(name)
+            stack.pop()
+    return order
+
+
+def format_load_order(root: str, order: List[str]) -> str:
+    lines = [
+        f"Порядок загрузки зависимостей пакета {root} "
+        f"(пакетов: {len(order)}):"
+    ]
+    for number, name in enumerate(order, start=1):
+        lines.append(f"{INDENT}{number}. {name}")
+    return "\n".join(lines)
+
 
 def format_graph(root: str, graph: Graph) -> str:
     lines = [f"Граф зависимостей пакета {root} (пакетов: {len(graph)}):"]

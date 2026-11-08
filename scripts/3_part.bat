@@ -9,7 +9,7 @@ echo === 1. Ромб: общий пакет D, обход по уровням ==
 %PY% src\main.py --package A --repo test_repos\diamond.txt --test-mode --package-version 1
 
 echo.
-echo === 2. Цепочка, корень в середине (с пакета С) ===
+echo === 2. Цепочка, корень в середине ===
 %PY% src\main.py --package C --repo test_repos\chain.txt --test-mode --package-version 1
 
 echo.

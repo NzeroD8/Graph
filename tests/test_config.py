@@ -63,6 +63,7 @@ class ParseConfigTests(unittest.TestCase):
         self.assertEqual(config.release, DEFAULT_RELEASE)
         self.assertFalse(config.test_mode)
         self.assertFalse(config.ascii_tree)
+        self.assertFalse(config.load_order)
         self.assertEqual(config.filter_substring, "")
 
     def test_all_options(self):
@@ -189,6 +190,16 @@ class OtherErrorTests(unittest.TestCase):
                 errors = errors_for(make_args({"--output": name}))
                 self.assertIn("--output", errors[0])
 
+    def test_load_order_flag(self):
+        """Флаг --load-order включает режим порядка загрузки."""
+        config = parse_config(make_args(extra=["--load-order"]))
+        self.assertTrue(config.load_order)
+
+    def test_load_order_flag_with_value(self):
+        """Флагу --load-order нельзя передать значение."""
+        errors = errors_for(make_args(extra=["--load-order=yes"]))
+        self.assertIn("аргументы командной строки", errors[0])
+
     def test_valid_release(self):
         """Кодовые имена релизов допустимы."""
         for release in ("noble", "jammy", "focal"):
@@ -271,7 +282,7 @@ class FormatConfigTests(unittest.TestCase):
         self.assertEqual(
             keys,
             ["package", "repo", "test_mode", "version", "release", "output",
-             "ascii_tree", "filter_substring"],
+             "ascii_tree", "load_order", "filter_substring"],
         )
 
     def test_format_values(self):

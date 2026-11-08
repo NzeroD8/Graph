@@ -7,8 +7,8 @@ from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from extract import FetchError  # noqa: E402
-from main import (  # noqa: E402
+from extract import FetchError  
+from main import (  
     EXIT_CONFIG_ERROR,
     EXIT_FETCH_ERROR,
     EXIT_OK,
@@ -56,6 +56,16 @@ class MainTests(unittest.TestCase):
              "  zlib1g -> (нет)"],
         )
         self.assertEqual(err, "")
+
+    def test_load_order_mode(self):
+        """С --load-order выводится порядок загрузки вместо графа."""
+        with mock.patch(OPEN_SOURCE, return_value=lambda n: GRAPH.get(n, [])):
+            code, out, _ = run_main(GOOD_ARGS + ["--load-order"])
+        self.assertEqual(code, EXIT_OK)
+        self.assertEqual(
+            out.splitlines(),
+            ["Порядок загрузки зависимостей пакета nginx (пакетов: 3):",
+             "  1. zlib1g", "  2. libc6", "  3. nginx"])
 
     def test_filter_applied(self):
         """Подстрока из --filter исключает пакеты."""
@@ -127,6 +137,14 @@ class TestModeTests(unittest.TestCase):
         lines = self.graph_lines("complex.txt", extra=["--filter", "G"])
         self.assertFalse(any("G" in line for line in lines))
         self.assertIn("  E -> H", lines)
+
+    def test_load_order_of_cycle(self):
+        """Порядок загрузки при цикле: корень последним, без повторов."""
+        code, out, _ = run_main(
+            test_args("cycle.txt", extra=["--load-order"]))
+        self.assertEqual(code, EXIT_OK)
+        self.assertEqual(
+            out.splitlines()[1:], ["  1. C", "  2. B", "  3. A"])
 
     def test_complex_cycle(self):
         """В большом примере цикл G -> B сохранён как ребро."""

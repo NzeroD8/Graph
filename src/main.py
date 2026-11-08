@@ -3,7 +3,13 @@ from typing import Optional, Sequence
 
 from config import Config, ConfigError, parse_config
 from extract import DependencySource, FetchError, load_dependency_source
-from graph import build_graph, format_graph, load_test_repo
+from graph import (
+    build_graph,
+    format_graph,
+    load_test_repo,
+    format_load_order,
+    load_order
+)
 
 EXIT_OK = 0
 EXIT_CONFIG_ERROR = 2
@@ -31,10 +37,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"Ошибка: {error}", file=sys.stderr)
         return EXIT_FETCH_ERROR
     graph = build_graph(config.package, source, config.filter_substring)
-    print(format_graph(config.package, graph))
+    if config.load_order:
+        order = load_order(graph, config.package)
+        print(format_load_order(config.package, order))
+    else:
+        print(format_graph(config.package, graph))
     return EXIT_OK
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

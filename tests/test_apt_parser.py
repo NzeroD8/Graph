@@ -4,7 +4,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from apt_parser import (  # noqa: E402
+from apt_parser import (  
     INDEX_FIELDS,
     Entry,
     collect_entries,

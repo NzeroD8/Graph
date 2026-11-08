@@ -41,6 +41,7 @@ class Config:
     release: str
     output: str
     ascii_tree: bool
+    load_order: bool
     filter_substring: str
 
 
@@ -94,6 +95,11 @@ def add_output_options(parser: ConfigParser) -> None:
         "--ascii-tree",
         action="store_true",
         help="выводить зависимости в виде ASCII-дерева",
+    )
+    parser.add_argument(
+        "--load-order",
+        action="store_true",
+        help="выводить порядок загрузки зависимостей пакета",
     )
     parser.add_argument(
         "--filter",

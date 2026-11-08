@@ -5,11 +5,13 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from graph import (  # noqa: E402
+from graph import (  
     RepoFileError,
     build_graph,
     format_graph,
+    format_load_order,
     is_excluded,
+    load_order,
     load_test_repo,
     parse_line,
     parse_repo,
@@ -106,6 +108,70 @@ class FilterTests(unittest.TestCase):
         """Корневой пакет входит в граф, даже если содержит подстроку."""
         graph = build_graph("AX", source_of({"AX": ["B"]}), "X")
         self.assertEqual(graph, {"AX": ["B"], "B": []})
+
+
+def order_of(root, repo, substring=""):
+    """Порядок загрузки для графа, построенного по словарю."""
+    return load_order(build_graph(root, source_of(repo), substring), root)
+
+
+class LoadOrderTests(unittest.TestCase):
+    """Порядок загрузки: зависимости раньше зависящих от них пакетов."""
+
+    def test_single_package(self):
+        """Пакет без зависимостей загружается один."""
+        self.assertEqual(order_of("A", {"A": []}), ["A"])
+
+    def test_chain(self):
+        """В цепочке сначала самая глубокая зависимость."""
+        repo = {"A": ["B"], "B": ["C"], "C": ["D"], "D": []}
+        self.assertEqual(order_of("A", repo), ["D", "C", "B", "A"])
+
+    def test_diamond(self):
+        """Общий пакет загружается один раз и до обоих потребителей."""
+        repo = {"A": ["B", "C"], "B": ["D"], "C": ["D"], "D": []}
+        self.assertEqual(order_of("A", repo), ["D", "B", "C", "A"])
+
+    def test_dependencies_before_dependents(self):
+        """В большом графе без циклов каждая зависимость идёт раньше."""
+        repo = {"A": ["B", "C"], "B": ["D", "E"], "C": ["F"], "D": ["G"],
+                "E": ["G", "H"], "F": ["H"], "G": [], "H": []}
+        order = order_of("A", repo)
+        self.assertEqual(sorted(order), sorted(repo))
+        for name, dependencies in repo.items():
+            for dependency in dependencies:
+                self.assertLess(order.index(dependency), order.index(name))
+        self.assertEqual(order[-1], "A")
+
+    def test_cycle_is_broken(self):
+        """Цикл разрывается: каждый пакет один раз, корень последним."""
+        repo = {"A": ["B"], "B": ["C"], "C": ["A"]}
+        self.assertEqual(order_of("A", repo), ["C", "B", "A"])
+
+    def test_self_loop(self):
+        """Зависимость от самого себя игнорируется."""
+        self.assertEqual(order_of("A", {"A": ["A", "B"]}), ["B", "A"])
+
+    def test_filter_applied(self):
+        """Исключённые пакеты в порядок не попадают."""
+        repo = {"A": ["BX", "C"], "BX": ["D"], "C": []}
+        self.assertEqual(order_of("A", repo, "X"), ["C", "A"])
+
+    def test_deep_graph(self):
+        """Глубокая цепочка обрабатывается без рекурсии и ошибок."""
+        depth = 5000
+        repo = {f"P{i}": [f"P{i + 1}"] for i in range(depth)}
+        repo[f"P{depth}"] = []
+        order = load_order(repo, "P0")
+        self.assertEqual(len(order), depth + 1)
+        self.assertEqual(order[0], f"P{depth}")
+
+    def test_format(self):
+        """Нумерованный список с заголовком."""
+        self.assertEqual(
+            format_load_order("A", ["B", "A"]).splitlines(),
+            ["Порядок загрузки зависимостей пакета A (пакетов: 2):",
+             "  1. B", "  2. A"])
 
 
 class FormatGraphTests(unittest.TestCase):
